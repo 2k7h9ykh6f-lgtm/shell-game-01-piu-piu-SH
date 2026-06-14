@@ -1,0 +1,2 @@
+language = "bash"
+run = "chmod +x piu-piu; ./piu-piu"
