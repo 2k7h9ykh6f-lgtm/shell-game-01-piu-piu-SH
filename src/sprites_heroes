@@ -28,7 +28,7 @@ sprite_hero1 () {
      'duel')
          re="crate ($[OX+7]|$[OX+8]|$[OX+9]|$[OX+10]|$[OX+11]) ($[OY+2]|$[OY+3]|$[OY+4]|$[OY+5]|$[OY+6]).*";;
      'team')
-         re="(life|ammo|gunup) ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]|$[OY+3]|$[OY+4]).*|"
+         re="(life|ammo|gunup|twin|pierce) ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]|$[OY+3]|$[OY+4]).*|"
         re+="alien ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]).*|"
         re+="bfire ($[OX+12]|$[OX+13]) ($[OY+2]|$[OY+3]).*|"
         re+="boss ($[OX+12]|$[OX+13]) $[OY-1].*";;
@@ -144,6 +144,20 @@ sprite_piu1 () {
             cut $OX $OY $SKY ' ' ${shoot[AS]} $CM1'>';; #1
     esac
     collision 1 "$re" $OX $[OY-1] && unset PIU[i]
+}
+
+sprite_piup1 () { # piercing round: same as piu1, but NOT removed on hit so it flies through enemies
+    case $type in
+         'duel') re="${ht}2 ($OX|$[OX+1]) ($[OY-1]|$[OY-2]|$[OY-3]|$[OY-4]).*";;
+         'team') re="alien ($OX|$[OX+1]) $[OY-1].*|boss ($OX|$[OX+1]) ($[OY-2]|$[OY-3]|$[OY-4]).*";;
+    esac
+    mov + && PIU[i]="piup1 $OX $OY 1 4 $SC $SM $CS $CL $AS 3" || { unset PIU[i]; return; }
+    CM1=$SKY$BLD$YLW
+    #01234
+    #1 ==►
+    ################  1      2       3       4    #0
+    cut $OX $OY $SKY ' ' $CM1'=' $CM1'=' $CM1'►'  #1
+    collision 1 "$re" $OX $[OY-1]   # no `&& unset PIU[i]` -> piercing round keeps flying
 }
 
 sprite_piu2 () {

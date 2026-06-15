@@ -51,7 +51,7 @@ vfail(){
      bhealth=100                                        # boss' health                              (100)
      showfps=true                                       # show FPS counter if set                   (true)
      enumber=0                                          # enemies counter                           (0)
-     bonuses=("ammo" "life" "ammo" "gunup" "ammo")      # bonuses, more ammo, less life ang gun power ups
+     bonuses=("ammo" "life" "twin" "gunup" "ammo" "pierce") # bonuses: ammo, life, gunup + temp weapon power-ups (twin/pierce)
        enmax=100                                        # max number of enemies                     (10)
        crate=0                                          # crate drop                                (0)
        frags=0                                          # hero1 frags counter                       (0)
@@ -66,6 +66,11 @@ vfail(){
          HOU=1111                                       # houses randomizer                         (1111)
           ad='Die alien scum!'                          # ad plane message                          'Die alien scum!'
            G=1                                          # gun                                       (1)(max 5)
+         pwr=                                           # active temp weapon power-up: ''|twin|pierce ('')
+    pwr_time=0                                          # SECONDS value when a timed power expires  (0)
+   pwr_shots=0                                          # remaining shots for a shot-based power     (0)
+   twin_secs=15                                         # twin-shot power-up duration in seconds     (15)
+pierce_shots=20                                         # piercing shots granted on pickup           (20)
 read year month day dow < <(LANG=C date +'%Y %m %d %a') # get year, month, day and day of week at once
 #----{ Multipleyer config }-----------------------------{ description  }---------------------{ def. values }------------
       frags2=0                                          # hero2 frags counter                       (0)
@@ -131,6 +136,13 @@ bonus () { # get random bonus from alien or not
     ((RANDOM % $rnd == 0)) && ENM+=("${bonuses[$[RANDOM%${#bonuses[@]}]]} $OX $[OY-1] 3 5 0 2 1 0 0 0 ${#ENM[@]}")
 }
 
+expire_pwr () { # clear temporary weapon power-up once it runs out (time-based or shot-based)
+    case $pwr in
+        twin)   (( SECONDS >= pwr_time )) && pwr=;;
+        pierce) (( pwr_shots <= 0      )) && pwr=;;
+    esac
+}
+
 mess () {
     cursor off
     XY 1 1 ${DEF}; clear
@@ -172,7 +184,15 @@ control_hero1 () {
            a) (( H1X  > 2            )) && ((H1X--));;
            s) (( H1Y  < heroendy     )) && ((H1Y++));;
            d) (( H1X  < (heroendx-L) )) && ((H1X++));;
-           p) (( ammo > G && C1 == 0 )) && { C1=7; add_piu $(($1+L)) $2 1 $G; ((ammo-=$G)); };;
+           p) (( ammo > G && C1 == 0 )) && {
+                  C1=7
+                  case $pwr in
+                      pierce) add_piup $(($1+L)) $2;          ((pwr_shots--));;
+                      twin)   add_piu  $(($1+L)) $2 1 $G; add_twin $(($1+L)) $2;;
+                      *)      add_piu  $(($1+L)) $2 1 $G;;
+                  esac
+                  ((ammo-=$G))
+              };;
     esac
 }
 
@@ -223,6 +243,8 @@ collision () {
 #             alien:*) collbooom; ((enumber--)) ; return 0;;
               gunup:1) collbooom; [[ $G  -lt $gunmax ]] && ((G++))   ; return 1;;
               gunup:2) collbooom; [[ $G2 -lt $gunmax ]] && ((G2++))  ; return 1;;
+               twin:1) collbooom; pwr=twin   pwr_time=$((SECONDS+twin_secs)); return 1;;
+             pierce:1) collbooom; pwr=pierce pwr_shots=$pierce_shots        ; return 1;;
               alien:1) collbooom; ((enumber--)) ; ((frags++)) ; bonus; return 0;;
               alien:2) collbooom; ((enumber--)) ; ((frags2++)); bonus; return 0;;
               hero1:2|penis1:2 )  ((frags2++))  ; ((life--))  ; BOOM $obj_x $obj_y ; return 0;;
@@ -270,6 +292,10 @@ status () { #-{ Print game status }--------------------------------------------
          (team:*       ) enemy=aliens  bullets=Ammo;;
     esac
     screen+="\e[1;2H$SKY${BLK}Killed $enemy: $SKY$RED$frags$SKY ${BLK}Life: $SKY$RED$life$SKY ${BLK}$bullets: $SKY$RED$ammo$SKY "
+    case $pwr in
+        twin)   screen+="$SKY${BLK}Power: $SKY${RED}TWIN $[pwr_time-SECONDS]s$SKY ";;
+        pierce) screen+="$SKY${BLK}Power: $SKY${RED}PIERCE x$pwr_shots$SKY ";;
+    esac
     case $game in 'server')
         screen+="\e[$endy;2H$LND${BLK}Killed $enemy: $LND$RED$frags2$LND ${BLK}Life: $LND$RED$life2$LND ${BLK}$bullets: $LND$RED$ammo2$LND ";;
     esac
@@ -342,6 +368,19 @@ add_piu () {
                            "piu$PH $[PX+13] $[PY+4] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"    #  -=>
                            "piu$PH $[PX+12] $[PY+5] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3");; # -=>
     esac
+}
+
+add_twin () { # twin-shot power-up: two extra bullets above/below the normal spread
+    local PX=$1 PY=$2
+    PIU+=("piu1 $[PX+12] $[PY-1] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+          "piu1 $[PX+12] $[PY+6] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3")
+}
+
+add_piup () { # piercing power-up: spawn piercing rounds (piup1); wider when gun level is high
+    local PX=$1 PY=$2
+    PIU+=("piup1 $[PX+12] $[PY+3] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3")
+    (( G >= 3 )) && PIU+=("piup1 $[PX+12] $[PY+1] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                          "piup1 $[PX+12] $[PY+5] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3")
 }
 
 backgound_birds () { # Add birds }----------------------------------------------------------------------
@@ -774,6 +813,27 @@ sprite_gunup () {
                 cut $SX $[OY+2] $CM1 '‖' $CM3'‾' $CM3'‾' $SKY' ';; #3
     esac
 }
+sprite_twin () { # power-up pickup: twin-shot barrage (time-limited)
+    mov - && ENM[i]="twin $OX $OY 3 4 $SC $SM $CS $CL $AS 3 $i" || { unset ENM[i]; return; }
+    CM1=$SKY$BLD$GRN CM2=$SKY$GRN
+    #01234
+    #1=⇒
+    #2=⇒
+    ####################  1       2     3   4    #0
+    cut $SX  $OY    $CM1 '=' $CM2'⇒'   ' ' ' '   #1
+    cut $SX $[OY+1] $CM1 '=' $CM2'⇒'   ' ' ' '   #2
+    cut $SX $[OY+2] $SKY ' '     ' '   ' ' ' '   #3
+}
+sprite_pierce () { # power-up pickup: piercing rounds (shot-limited)
+    mov - && ENM[i]="pierce $OX $OY 3 5 $SC $SM $CS $CL $AS 3 $i" || { unset ENM[i]; return; }
+    CM1=$SKY$BLD$YLW CM2=$SKY$RED
+    #012345
+    #1==►
+    ####################  1   2       3   4   5    #0
+    cut $SX  $OY    $CM1 '=' '=' $CM2'►' ' ' ' '   #1
+    cut $SX $[OY+1] $SKY ' ' ' '     ' ' ' ' ' '   #2
+    cut $SX $[OY+2] $SKY ' ' ' '     ' ' ' ' ' '   #3
+}
 #------------------------{ Ad plane }-----------------------------------------------------------------------------------
 flame1=("$red- ⎕"       "$ylw~ ⎕"       "$red- $RED~ ⎕" "$ylw- ⎕ ⎕")
 flame2=("$ylw- ⎕"       "$red- $RED~ ⎕" "$red~ ⎕ ⎕"       "$YLW~ ⎕")
@@ -1092,7 +1152,7 @@ sprite_hero1 () {
      'duel')
          re="crate ($[OX+7]|$[OX+8]|$[OX+9]|$[OX+10]|$[OX+11]) ($[OY+2]|$[OY+3]|$[OY+4]|$[OY+5]|$[OY+6]).*";;
      'team')
-         re="(life|ammo|gunup) ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]|$[OY+3]|$[OY+4]).*|"
+         re="(life|ammo|gunup|twin|pierce) ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]|$[OY+3]|$[OY+4]).*|"
         re+="alien ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]).*|"
         re+="bfire ($[OX+12]|$[OX+13]) ($[OY+2]|$[OY+3]).*|"
         re+="boss ($[OX+12]|$[OX+13]) $[OY-1].*";;
@@ -1208,6 +1268,20 @@ sprite_piu1 () {
             cut $OX $OY $SKY ' ' ${shoot[AS]} $CM1'>';; #1
     esac
     collision 1 "$re" $OX $[OY-1] && unset PIU[i]
+}
+
+sprite_piup1 () { # piercing round: same as piu1, but NOT removed on hit so it flies through enemies
+    case $type in
+         'duel') re="${ht}2 ($OX|$[OX+1]) ($[OY-1]|$[OY-2]|$[OY-3]|$[OY-4]).*";;
+         'team') re="alien ($OX|$[OX+1]) $[OY-1].*|boss ($OX|$[OX+1]) ($[OY-2]|$[OY-3]|$[OY-4]).*";;
+    esac
+    mov + && PIU[i]="piup1 $OX $OY 1 4 $SC $SM $CS $CL $AS 3" || { unset PIU[i]; return; }
+    CM1=$SKY$BLD$YLW
+    #01234
+    #1 ==►
+    ################  1      2       3       4    #0
+    cut $OX $OY $SKY ' ' $CM1'=' $CM1'=' $CM1'►'  #1
+    collision 1 "$re" $OX $[OY-1]   # no `&& unset PIU[i]` -> piercing round keeps flying
 }
 
 sprite_piu2 () {
@@ -1940,7 +2014,7 @@ sprite_piu2 () {
 game () {
     while true; do
         #-{ Empty screen, print game status and FPS }--------------------------
-        screen=; status; [[ $showfps ]] && fps_counter
+        screen=; status; expire_pwr; [[ $showfps ]] && fps_counter
         #-{ Add background }---------------------------------------------------
         [[ $background ]] && add_backgound birds msngr clouds houses trees moving_land
         #-{ Move bitplans }----------------------------------------------------

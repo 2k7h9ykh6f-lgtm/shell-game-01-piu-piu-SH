@@ -129,6 +129,27 @@ sprite_gunup () {
                 cut $SX $[OY+2] $CM1 '‖' $CM3'‾' $CM3'‾' $SKY' ';; #3
     esac
 }
+sprite_twin () { # power-up pickup: twin-shot barrage (time-limited)
+    mov - && ENM[i]="twin $OX $OY 3 4 $SC $SM $CS $CL $AS 3 $i" || { unset ENM[i]; return; }
+    CM1=$SKY$BLD$GRN CM2=$SKY$GRN
+    #01234
+    #1=⇒
+    #2=⇒
+    ####################  1       2     3   4    #0
+    cut $SX  $OY    $CM1 '=' $CM2'⇒'   ' ' ' '   #1
+    cut $SX $[OY+1] $CM1 '=' $CM2'⇒'   ' ' ' '   #2
+    cut $SX $[OY+2] $SKY ' '     ' '   ' ' ' '   #3
+}
+sprite_pierce () { # power-up pickup: piercing rounds (shot-limited)
+    mov - && ENM[i]="pierce $OX $OY 3 5 $SC $SM $CS $CL $AS 3 $i" || { unset ENM[i]; return; }
+    CM1=$SKY$BLD$YLW CM2=$SKY$RED
+    #012345
+    #1==►
+    ####################  1   2       3   4   5    #0
+    cut $SX  $OY    $CM1 '=' '=' $CM2'►' ' ' ' '   #1
+    cut $SX $[OY+1] $SKY ' ' ' '     ' ' ' ' ' '   #2
+    cut $SX $[OY+2] $SKY ' ' ' '     ' ' ' ' ' '   #3
+}
 #------------------------{ Ad plane }-----------------------------------------------------------------------------------
 flame1=("$red- ⎕"       "$ylw~ ⎕"       "$red- $RED~ ⎕" "$ylw- ⎕ ⎕")
 flame2=("$ylw- ⎕"       "$red- $RED~ ⎕" "$red~ ⎕ ⎕"       "$YLW~ ⎕")
