@@ -51,6 +51,7 @@ vfail(){
      bhealth=100                                        # boss' health                              (100)
      showfps=true                                       # show FPS counter if set                   (true)
      enumber=0                                          # enemies counter                           (0)
+       elite=0                                          # elite enemies counter                     (0)
      bonuses=("ammo" "life" "ammo" "gunup" "ammo")      # bonuses, more ammo, less life ang gun power ups
        enmax=100                                        # max number of enemies                     (10)
        crate=0                                          # crate drop                                (0)

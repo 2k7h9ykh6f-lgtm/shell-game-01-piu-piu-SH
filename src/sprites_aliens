@@ -110,6 +110,31 @@ mouthlow=("${RED}V   ${RED}v ${RED}v ${RED}v ${RED}v ${RED}v ${RED}V"
           "${RED}V   ${RED}^ ${RED}^ ${RED}^ ${RED}^ ${RED}^ ${RED}V"
           "${RED}V   ${RED}v ${RED}v ${RED}v ${RED}v ${RED}v ${RED}V")
 
+#------------------------{ Elite Alien }--------------------------------------------------------------------------------
+eliteth=("$BLD$MGN<\\$YLW/$BLD$MGN>" "$BLD$MGN<\\$RED/$BLD$MGN>" "$BLD$MGN<\\$YLW/$BLD$MGN>" "$BLD$MGN<\\$RED/$BLD$MGN>")
+elitemid=("$RED*" "$RED+" "$RED*" "$RED+")
+elitebot=("$BLD$MGN\\$RED""V$BLD$MGN/" "$BLD$MGN\\$YLW""V$BLD$MGN/" "$BLD$MGN\\$RED""V$BLD$MGN/" "$BLD$MGN\\$YLW""V$BLD$MGN/")
+
+sprite_elite () {
+    # Vertical oscillation (C2 = direction: 0=down, 1=up)
+    if [[ $C2 -eq 0 ]]; then
+        [[ $OY -lt $((endy-5)) ]] && ((OY++)) || C2=1
+    else
+        [[ $OY -gt 2 ]] && ((OY--)) || C2=0
+    fi
+    mov - && ENM[i]="elite $OX $OY 3 5 $SC $SM $CS $CL $AS 3 $C1 $C2 $i" \
+        || { unset ENM[i]; ((elite--)); return; }
+    CM1=$SKY$BLD$MGN X1="_Y_$[OX+1]H" X2="_Y_$[OX+1]H"
+    #01234
+    #1 </\>
+    #2( * )
+    #3 \V/
+    ####################  1     2       3       4    5   6  #0
+    cut $SX  $OY    $CM1 '' $X1 ${eliteth[AS]} ' '                        #1
+    cut $SX $[OY+1] $CM1 '('     ${elitemid[AS]} "$CM1"')' ' '           #2
+    cut $SX $[OY+2] $CM1 '' $X2 ${elitebot[AS]} ' '                       #3
+}
+
 bossendx=$[endx-14]
 bossendy=$[endy-7 ]
 bosshbar=$[endx-10]
