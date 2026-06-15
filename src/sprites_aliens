@@ -74,6 +74,30 @@ sprite_alien () {
     esac
 }
 
+#------------------------{ Elite alien }------------------------------------------------------------------------------
+# Tougher saucer: bold magenta hull, blinking yellow/red core, floating HP label, vertical zig-zag flight.
+# Object fields: elite OX OY OH=3 OW=5 SC SM CS CL AS AL=3 idx hp vdir  (field 12=hp, field 13=vdir)
+ecore=("$BLD$YLW◉ $BLD$YLW☢ $BLD$RED◉"
+       "$BLD$RED☢ $BLD$YLW◉ $BLD$YLW☢"
+       "$BLD$YLW◉ $BLD$RED☢ $BLD$YLW◉"
+       "$BLD$RED☢ $BLD$YLW◉ $BLD$RED☢")
+sprite_elite () {
+    ehp=${OI[12]} ed=${OI[13]:-1}; oxb=$OX
+    mov - || { unset ENM[i]; ((enumber--)); return; }
+    (( OX != oxb )) && { ((OY+=ed)); (( OY<=2 )) && ed=1; (( OY>=enmyendy )) && ed=-1; }
+    CM1=$SKY$BLD$MGN X1="_Y_$[OX+1]H" X2="_Y_$[OX+1]H"
+    #0123456
+    #1 ___
+    #2( ◉ )
+    #3 `¯´
+    ####################  1     2       3       4    5   6  #0
+    cut $SX  $OY    $CM1 '' $X1'_' $CM1'_' $CM1'_'  ' '     #1
+    cut $SX $[OY+1] $CM1 '('      ${ecore[AS]}  "$CM1"')' ' ' #2
+    cut $SX $[OY+2] $CM1 '' $X2'`'     '¯'     '´'  ' '     #3
+    screen+="\e[$[OY-1];${SX}H$SKY$BLD$RED$ehp"            # floating HP
+    ENM[i]="elite $OX $OY 3 5 $SC $SM $CS $CL $AS 3 $i $ehp $ed"
+}
+
 big1=("      ⎕       ⎕ ${YLW}O           ⎕       ⎕       ⎕ ${YLW}O"
       "      ⎕       ⎕       ⎕ $BLD${YLW}O       ⎕       ⎕       ⎕"
       "${YLW}O       ⎕       ⎕           ⎕ ${YLW}O       ⎕       ⎕"

@@ -31,6 +31,7 @@ sprite_hero1 () {
          re="(life|ammo|gunup) ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]|$[OY+3]|$[OY+4]).*|"
         re+="alien ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]).*|"
         re+="bfire ($[OX+12]|$[OX+13]) ($[OY+2]|$[OY+3]).*|"
+        re+="elite ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]).*|"
         re+="boss ($[OX+12]|$[OX+13]) $[OY-1].*";;
     esac
     CM1=$SKY$H1C$BLD CM2=$SKY$DIM$H1C CM3=$SKY$H1C CM4=$SKY$BLD$H1C$UND TR=${tailrotor[AS]} X1="_Y_$[OX+6]H" HS=$BLD$S1C$H1S
@@ -94,6 +95,7 @@ sprite_hero2 () {
               re="(life|ammo|gunup) ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]|$[OY+3]|$[OY+4]).*|"
              re+="alien ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]).*|"
              re+="bfire ($[OX+12]|$[OX+13]) ($[OY+2]|$[OY+3]).*|"
+             re+="elite ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]).*|"
              re+="boss ($[OX+12]|$[OX+13]) $[OY-1].*"
              #00000000001111111
              #01234567890123456
@@ -127,7 +129,7 @@ bullendx=$[endx-4]
 sprite_piu1 () {
     case $type in
          'duel') re="${ht}2 ($OX|$[OX+1]) ($[OY-1]|$[OY-2]|$[OY-3]|$[OY-4]).*";;
-         'team') re="alien ($OX|$[OX+1]) $[OY-1].*|boss ($OX|$[OX+1]) ($[OY-2]|$[OY-3]|$[OY-4]).*";;
+         'team') re="alien ($OX|$[OX+1]) $[OY-1].*|boss ($OX|$[OX+1]) ($[OY-2]|$[OY-3]|$[OY-4]).*|elite ($OX|$[OX+1]) ($[OY-2]|$[OY-1]|$OY).*";;
     esac
     mov + && PIU[i]="piu1 $OX $OY 1 4 $SC $SM $CS $CL $AS 3" || { unset PIU[i]; return; }
     case "$day:$month:$virus" in
@@ -149,7 +151,7 @@ sprite_piu1 () {
 sprite_piu2 () {
     case $type in
          'duel')  direction='-' re="${ht}1 ($[OX-10]|$[OX-11]) ($[OY-1]|$[OY-2]|$[OY-3]|$[OY-4]).*";;
-         'team')  direction='+' re="alien ($OX|$[OX+1]) $[OY-1].*|boss ($OX|$[OX+1]) ($[OY-2]|$[OY-3]|$[OY-4]).*";;
+         'team')  direction='+' re="alien ($OX|$[OX+1]) $[OY-1].*|boss ($OX|$[OX+1]) ($[OY-2]|$[OY-3]|$[OY-4]).*|elite ($OX|$[OX+1]) ($[OY-2]|$[OY-1]|$OY).*";;
     esac
     mov $direction && PIU[i]="piu2 $OX $OY 1 4 $SC $SM $CS $CL $AS 3" || { unset PIU[i]; return; }
     case "$day:$month:$virus:$type" in

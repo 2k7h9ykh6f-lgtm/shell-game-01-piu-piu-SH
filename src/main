@@ -53,6 +53,10 @@ vfail(){
      enumber=0                                          # enemies counter                           (0)
      bonuses=("ammo" "life" "ammo" "gunup" "ammo")      # bonuses, more ammo, less life ang gun power ups
        enmax=100                                        # max number of enemies                     (10)
+  elite_rate=6                                        # 1-in-N chance a spawn is elite (0=off)    (6)
+    elite_hp=5                                        # elite hit points                          (5)
+ elite_frags=5                                        # score per elite kill                      (5)
+   elite_spd=1                                        # elite speed counter, higher = slower      (1)
        crate=0                                          # crate drop                                (0)
        frags=0                                          # hero1 frags counter                       (0)
         life=3                                          # hero1 life counter                        (3)
