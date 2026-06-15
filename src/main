@@ -67,6 +67,10 @@ vfail(){
           ad='Die alien scum!'                          # ad plane message                          'Die alien scum!'
            G=1                                          # gun                                       (1)(max 5)
 read year month day dow < <(LANG=C date +'%Y %m %d %a') # get year, month, day and day of week at once
+     bphase=1                                           # current boss phase                        (1)
+       bph2=66                                          # enter boss phase 2 at/below this HP%      (66)
+       bph3=33                                          # enter boss phase 3 at/below this HP%      (33)
+       bfcd=20                                          # boss fire cooldown, set per phase         (20)
 #----{ Multipleyer config }-----------------------------{ description  }---------------------{ def. values }------------
       frags2=0                                          # hero2 frags counter                       (0)
        life2=3                                          # hero2 life counter                        (3)

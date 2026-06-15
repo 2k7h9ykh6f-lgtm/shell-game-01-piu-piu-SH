@@ -117,9 +117,10 @@ bosshbar=$[endx-10]
 TX=$halfx TY=$bossendy
 sprite_boss () {
     [[ $H2Y ]] && HY=$[H2Y-1] || HY=$[H1Y-1] # kill client first
+    boss_phase # set boss phase + fire cooldown from current health
     if [[ $bhealth -gt 0 ]]; then
         #-{ Boss fire }--------------------------------------------------------
-        [[ $OY -eq $HY && $C1 -eq 0 ]] && { ENM+=("bfire $[OX-4] $[OY+4] 1 5 0 0 1 5 $[RANDOM%5] 5 ${#ENM[@]}"); C1=20; }
+        [[ $OY -eq $HY && $C1 -eq 0 ]] && { boss_fire; C1=$bfcd; }
         #-{ Boss move }--------------------------------------------------------
         [[ $OY -lt $HY ]] && ((OY++))
         [[ $OY -gt $HY ]] && ((OY--)) # this is a black magic
