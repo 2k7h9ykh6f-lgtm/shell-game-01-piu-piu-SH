@@ -49,6 +49,7 @@ vfail(){
     tillboss=100                                        # frags needed to fight with boss           (100)
      version='₁․₂'                                      # game version in small digits ₀₁₂₃₄₅₆₇₈₉․
      bhealth=100                                        # boss' health                              (100)
+  boss_phase=1                                          # boss attack phase (1-3)                     (1)
      showfps=true                                       # show FPS counter if set                   (true)
      enumber=0                                          # enemies counter                           (0)
      bonuses=("ammo" "life" "ammo" "gunup" "ammo")      # bonuses, more ammo, less life ang gun power ups
@@ -276,10 +277,20 @@ status () { #-{ Print game status }--------------------------------------------
 }
 
 boss_health () {
-    bar=; hp=$((bosshbar * bhealth / 100)); hm=$((endx - 10))
+    bar=; hm=$((endx - 10))
+    if [[ $bhealth -gt 66 ]]; then
+        boss_phase=1; hp=$((hm * bhealth / 100))
+        bclr=$RED; blbl="PHASE 1"
+    elif [[ $bhealth -gt 33 ]]; then
+        boss_phase=2; hp=$((hm * (bhealth - 34) / 33))
+        bclr=$YLW; blbl="PHASE 2"
+    else
+        boss_phase=3; hp=$((hm * bhealth / 34))
+        bclr=$GRN; blbl="PHASE 3"
+    fi
     for (( i=0  ; i<hp; i++ )); do bar="█$bar"; done
     for (( i=$hp; i<hm; i++ )); do bar="$bar "; done
-    screen+="\e[$((endy-1));1H$LND $BLD${RED}BOSS: $LND$BLK|$BLD$RED$bar$LND$BLK|$LND"
+    screen+="\e[$((endy-1));1H$LND $BLD${bclr}${blbl}: $LND$BLK|$BLD${bclr}$bar$LND$BLK|$LND"
 }
 
 fill_screen () {
@@ -1356,8 +1367,20 @@ TX=$halfx TY=$bossendy
 sprite_boss () {
     [[ $H2Y ]] && HY=$[H2Y-1] || HY=$[H1Y-1] # kill client first
     if [[ $bhealth -gt 0 ]]; then
-        #-{ Boss fire }--------------------------------------------------------
-        [[ $OY -eq $HY && $C1 -eq 0 ]] && { ENM+=("bfire $[OX-4] $[OY+4] 1 5 0 0 1 5 $[RANDOM%5] 5 ${#ENM[@]}"); C1=20; }
+        #-{ Boss phase-based fire }---------------------------------------------
+        if [[ $OY -eq $HY && $C1 -eq 0 ]]; then
+            case $boss_phase in
+                1) ENM+=("bfire $[OX-4] $[OY+4] 1 5 0 0 1 5 $[RANDOM%5] 5 ${#ENM[@]}")
+                   C1=20;;
+                2) ENM+=("bfire $[OX-4] $[OY+3] 1 5 0 0 1 5 $[RANDOM%5] 5 ${#ENM[@]}"
+                         "bfire $[OX-4] $[OY+5] 1 5 0 0 1 5 $[RANDOM%5] 5 ${#ENM[@]}")
+                   C1=12;;
+                *) ENM+=("bfire $[OX-4] $[OY+2] 1 5 0 0 1 5 $[RANDOM%5] 5 ${#ENM[@]}"
+                         "bfire $[OX-4] $[OY+4] 1 5 0 0 1 5 $[RANDOM%5] 5 ${#ENM[@]}"
+                         "bfire $[OX-4] $[OY+6] 1 5 0 0 1 5 $[RANDOM%5] 5 ${#ENM[@]}")
+                   C1=8;;
+            esac
+        fi
         #-{ Boss move }--------------------------------------------------------
         [[ $OY -lt $HY ]] && ((OY++))
         [[ $OY -gt $HY ]] && ((OY--)) # this is a black magic
@@ -1393,7 +1416,7 @@ sprite_boss () {
             cut $SX $[OY+4] $CM1 ' '   ' '   '\\'          ${mouthlow[AS]}             $CM1'/'     ' ' ' ' #5
             cut $SX $[OY+5] $CM1 '' $X3' '   ' ' '`' '¯' '-'       '-'         '-' '¯' '´' ' '     ' '     #6
             cut $SX $[OY+6] $SKY ''    '' $X4' ' ' ' ' ' ' '       ' '         ' ' ' ' ' ' ' '             #7
-            ENM[i]="boss $OX $OY 6 14 $SC $SM $CS $CL $AS 6 $C1 $C2";;
+            ENM[i]="boss $OX $OY 6 14 $SC $SM $CS $CL $AS 6 $C1 $C2 $boss_phase";;
         *covid-19)
             CM1=$SKY$DIM$BLK CM2=$BLD$BLK X1="_Y_$[OX+2]H" X2="_Y_$[OX+2]H" X3="_Y_$[OX+1]H" X4="_Y_$[OX+1]H"
             #00000000001111
@@ -1413,7 +1436,7 @@ sprite_boss () {
             cut $SX $[OY+4] $CM1 ' '      ' '    '\\'                 ${big4[AS]}                     $CM1'/'     ' '     ' ' #5
             cut $SX $[OY+5] $CM1 ''    $X3' ' ${bot2[AS]} $CM1'`'     '-' '.' ',' '.'     '-'     '`' ${bot1[AS]} ' '         #6
             cut $SX $[OY+6] $SKY ''    $X4' '    ' '      ' '         ' ' ' ' ' ' ' '     ' '     ' '     ' '     ' '         #7
-            ENM[i]="boss $OX $OY 7 13 $SC $SM $CS $CL $AS 3 $C1 $C2";;
+            ENM[i]="boss $OX $OY 7 13 $SC $SM $CS $CL $AS 3 $C1 $C2 $boss_phase";;
         *)
             CM1=$SKY$DIM$BLK CM2=$BLD$BLK X1="_Y_$[OX+4]H" X2="_Y_$[OX+2]H" X3="_Y_$[OX+1]H" X4="_Y_$[OX+1]H"
             #00000000001111
@@ -1433,7 +1456,7 @@ sprite_boss () {
             cut $SX $[OY+4] $CM1 ' '   '('   ' '            ${big2[AS]}              ' ' "$CM2"')' ' ' #5
             cut $SX $[OY+5] $CM1 ' '   ' '   '`' '¯'   '¯'  '-' '-' '-'     '¯'  '¯' '´'       ' ' ' ' #6
             cut $SX $[OY+6] $SKY '' $X4' '   ' ' ' '   ' '  ' ' ' ' ' '     ' '  ' ' ' '       ' '     #7
-            ENM[i]="boss $OX $OY 6 14 $SC $SM $CS $CL $AS $AL $C1 $C2";;
+            ENM[i]="boss $OX $OY 6 14 $SC $SM $CS $CL $AS $AL $C1 $C2 $boss_phase";;
     esac
 }
 #------------------------{ Clouds }-------------------------------------------------------------------------------------
@@ -1952,7 +1975,7 @@ game () {
         BP3=("${BP3[@]}"); for i in ${!BP3[@]}; { OI=(${BP3[i]}); print_sprite; } # big(closer) background objects
         #-{ BOSS }-------------------------------------------------------------
         if [[ $[frags+frags2] -ge $tillboss && $type != duel ]]; then # add boss object
-            [[ $bossborn ]] || { ENM+=("boss $endx $halfy 6 14 0 0 1 0 $[RANDOM%3] 3 20 10"); bossborn=true; }
+            [[ $bossborn ]] || { ENM+=("boss $endx $halfy 6 14 0 0 1 0 $[RANDOM%3] 3 20 10 1"); bossborn=true; }
             boss_health # Print boss' health bar
             #-{ Add aliens }---------------------------------------------------
             [[ $bhealth -gt 0 ]] && add_enm $EX $EY 5 # aliens come out from boss

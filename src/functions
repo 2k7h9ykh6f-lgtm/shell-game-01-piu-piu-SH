@@ -197,10 +197,20 @@ status () { #-{ Print game status }--------------------------------------------
 }
 
 boss_health () {
-    bar=; hp=$((bosshbar * bhealth / 100)); hm=$((endx - 10))
+    bar=; hm=$((endx - 10))
+    if [[ $bhealth -gt 66 ]]; then
+        boss_phase=1; hp=$((hm * bhealth / 100))
+        bclr=$RED; blbl="PHASE 1"
+    elif [[ $bhealth -gt 33 ]]; then
+        boss_phase=2; hp=$((hm * (bhealth - 34) / 33))
+        bclr=$YLW; blbl="PHASE 2"
+    else
+        boss_phase=3; hp=$((hm * bhealth / 34))
+        bclr=$GRN; blbl="PHASE 3"
+    fi
     for (( i=0  ; i<hp; i++ )); do bar="█$bar"; done
     for (( i=$hp; i<hm; i++ )); do bar="$bar "; done
-    screen+="\e[$((endy-1));1H$LND $BLD${RED}BOSS: $LND$BLK|$BLD$RED$bar$LND$BLK|$LND"
+    screen+="\e[$((endy-1));1H$LND $BLD${bclr}${blbl}: $LND$BLK|$BLD${bclr}$bar$LND$BLK|$LND"
 }
 
 fill_screen () {
