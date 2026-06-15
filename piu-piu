@@ -275,6 +275,25 @@ status () { #-{ Print game status }--------------------------------------------
     esac
 }
 
+teammate_alert () { #-{ Show alerts when a player has low HP or is destroyed }-
+    [[ $game == server ]] || return
+    local ax=$halfx ay=3
+    #-{ Hero2 status (remote client player) }-----------------------------------
+    if [[ $life2 -le 0 ]]; then
+        screen+="\e[${ay};${ax}H${BLD}${RED}*** ALLY DESTROYED ***${DEF}"
+    elif [[ $life2 -le 1 ]]; then
+        (( FPSC % 2 )) && screen+="\e[${ay};${ax}H${BLD}${YLW}! ALLY CRITICAL: 1 HP !" || \
+                           screen+="\e[${ay};${ax}H${BLD}${RED}! ALLY CRITICAL: 1 HP !"
+    fi
+    #-{ Hero1 status (local server player, visible on client screen) }---------
+    if [[ $life -le 0 ]]; then
+        screen+="\e[$[ay+1];${ax}H${BLD}${RED}*** YOU DESTROYED ***${DEF}"
+    elif [[ $life -le 1 ]]; then
+        (( FPSC % 2 )) && screen+="\e[$[ay+1];${ax}H${BLD}${YLW}! YOU CRITICAL: 1 HP !" || \
+                           screen+="\e[$[ay+1];${ax}H${BLD}${RED}! YOU CRITICAL: 1 HP !"
+    fi
+}
+
 boss_health () {
     bar=; hp=$((bosshbar * bhealth / 100)); hm=$((endx - 10))
     for (( i=0  ; i<hp; i++ )); do bar="█$bar"; done
@@ -1940,7 +1959,7 @@ sprite_piu2 () {
 game () {
     while true; do
         #-{ Empty screen, print game status and FPS }--------------------------
-        screen=; status; [[ $showfps ]] && fps_counter
+        screen=; status; teammate_alert; [[ $showfps ]] && fps_counter
         #-{ Add background }---------------------------------------------------
         [[ $background ]] && add_backgound birds msngr clouds houses trees moving_land
         #-{ Move bitplans }----------------------------------------------------
