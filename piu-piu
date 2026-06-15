@@ -135,9 +135,19 @@ mess () {
     cursor off
     XY 1 1 ${DEF}; clear
     case $1 in
-        win ) sprite_win ; XY 0 ${endy}; read -t3 -n1000 trash; the_story; return 0;;
-        lose) sprite_lose; XY 0 ${endy}; read -t3 -n1000 trash; bye 1;;
-        tobe) sprite_tobe; XY 0 ${endy}; read -t3 -n1000 trash; bye 1;;
+        win ) sprite_win
+              [[ $hs_saved ]] && {
+                  XY $[$endx/2-12] $[$endy/2+6] "$BLD$GRN Boss Defeated!  Score: $frags$DEF"
+                  show_highscores $[$endy/2+8]
+              }
+              XY 0 ${endy}; read -t3 -n1000 trash; the_story; return 0;;
+        lose) sprite_lose
+              XY $[$endx/2-10] $[$endy/2+6] "$DEF${BLK}Score: $RED$frags$DEF ${BLK}Aliens Killed$DEF"
+              [[ $hs_saved ]] && show_highscores $[$endy/2+8]
+              XY 0 ${endy}; read -t3 -n1000 trash; bye 1;;
+        tobe) sprite_tobe
+              XY $[$endx/2-10] $[$endy-12] "$DEF${BLK}Score: $RED$frags$DEF ${BLK}Aliens Killed$DEF"
+              XY 0 ${endy}; read -t3 -n1000 trash; bye 1;;
         help) sprite_help;;
     esac
 }
@@ -490,9 +500,69 @@ configure    () {
 
 game=single
 type=team
+#------------------------{ High Scores }--------------------------------------------------------------------------------
+HSFILE="$HOME/.piuhighscore"
+
+load_highscores () {
+    hs_count=0
+    [[ -f "$HSFILE" ]] || return 1
+    while IFS='|' read -r f b m d; do
+        [[ -z "$f" ]] && continue
+        ((hs_count++))
+        eval "hs_frags_$hs_count=\$f"
+        eval "hs_boss_$hs_count=\$b"
+        eval "hs_mode_$hs_count=\$m"
+        eval "hs_date_$hs_count=\$d"
+    done < "$HSFILE"
+    [[ $hs_count -gt 0 ]]
+}
+
+save_highscore () {
+    [[ ${frags:-0} -gt 0 ]] || return 1
+    local boss_defeated="No"
+    [[ "$the_end" == "win" ]] && boss_defeated="Yes"
+    local gmode=${type:-single}
+    local gdate
+    gdate=$(LANG=C date +'%Y-%m-%d %H:%M')
+    local new_entry="${frags}|${boss_defeated}|${gmode}|${gdate}"
+    # Ensure file exists
+    [[ -f "$HSFILE" ]] || touch "$HSFILE" 2>/dev/null || return 1
+    # Combine existing scores with new entry, sort descending, keep top 10
+    { cat "$HSFILE"; echo "$new_entry"; } | \
+        sort -t'|' -k1 -rn | head -10 > "${HSFILE}.tmp"
+    mv "${HSFILE}.tmp" "$HSFILE" 2>/dev/null
+    hs_saved=true
+}
+
+check_highscore () {
+    load_highscores || return 0
+    [[ $hs_count -lt 10 ]] && return 0
+    [[ ${frags:-0} -gt ${hs_frags_$hs_count:-0} ]]
+}
+
+show_highscores () {
+    load_highscores || return 1
+    local x=$[$endx/2-16] y=${1:-$[$endy/2+5]}
+    local header="$DEF$BLD$YLW-=- HIGH SCORES -=-$DEF"
+    XY $x $y "$header"
+    XY $x $[y+1] "$DIM${BLK} #  Score  Boss   Mode   Date$DEF"
+    local limit=$hs_count; [[ $limit -gt 5 ]] && limit=5
+    for ((i=1; i<=limit; i++)); do
+        local f=$(eval echo \${hs_frags_$i})
+        local b=$(eval echo \${hs_boss_$i})
+        local m=$(eval echo \${hs_mode_$i})
+        local d=$(eval echo \${hs_date_$i})
+        local clr="$DIM$WHT"
+        [[ "$f" == "$frags" && "$d" == "$(LANG=C date +'%Y-%m-%d %H:%M')" ]] && clr="$BLD$RED"
+        printf -v row "%2d. %-5s  %-5s  %-5s  %s" $i "$f" "$b" "$m" "$d"
+        XY $x $[y+1+i] "$clr$row$DEF"
+    done
+}
+#------------------------{ Menu }---------------------------------------------------------------------------------------
 menu () {
      item=1 MX=$[$endx/4+4] MY=$[$endy-6]
     items=('' "start $game" 'multiplayer' 'configure' 'exit')
+    load_highscores
     while true; do
         selector || ${items[$?]// */} || break
         [[ $show_hero ]] && hero_config
@@ -500,6 +570,9 @@ menu () {
             [[ $i -eq $item ]] && selected=$BLD$RED || selected=$DEF
             XY $MX $[MY+i] "$selected${items[i]}$DEF"
         }
+        if [[ $hs_count -gt 0 ]]; then
+            XY $MX $[MY+${#items[@]}+1] "$DEF$YLW* Best: $RED${hs_frags_1}$DEF $YLW($DIM${hs_mode_1}$YLW)$DEF"
+        fi
     done
 }
 #================================================{ Messages }===========================================================
@@ -1964,12 +2037,13 @@ game () {
         #-{ Check the end and send data to client }----------------------------
         case $game$type in
               *team) [[ ${HER[@]} ]] || the_end=lose;;&
-              *duel) [[ ${HER[1]} ]] || if [[ $life -gt 0 ]]; then listener; sender $caddr $cport lose; mess win
-                                                              else listener; sender $caddr $cport win ; mess lose; fi;;&
+              *duel) [[ ${HER[1]} ]] || if [[ $life -gt 0 ]]; then listener; sender $caddr $cport lose; the_end=win
+                                                              else listener; sender $caddr $cport win ; the_end=lose; fi;;&
             server*) listener; sender $caddr $cport "$screen";;
         esac
         if [[ $the_end ]]; then
             case $game in 'server') listener; sender $caddr $cport $the_end;; esac
+            save_highscore
             mess $the_end; [[ $type != duel ]] && starship_intro starship
         fi
     done

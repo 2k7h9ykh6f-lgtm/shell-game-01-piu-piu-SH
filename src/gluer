@@ -1,4 +1,5 @@
 #!/bin/bash
+#================================================{ Messages }===========================================================
 target=../piu-piu
 sed -n '1,/_FUNCTIONS_/p' main    >  $target
 sed '1d' functions                >> $target
@@ -12,13 +13,11 @@ sed '1d' sprites_trees            >> $target
 sed '1d' sprites_penis            >> $target
 sed -n '/_PENIS_/,$p'     main    >> $target
 
-sed -i '/_PENIS_/d;
-        /_TREES_/d;
-        /_CLOUDS_/d;
-        /_HOUSES_/d;
-        /_ALIENS_/d;
-        /_HEROES_/d;
-        /_SPRITES_/d;
-        /_MESSAGES_/d;
-        /_FUNCTIONS_/d' $target
+# Portable sed -i: GNU sed uses -i'', macOS/BSD sed uses -i ''
+_patterns='/_PENIS_/d;/_TREES_/d;/_CLOUDS_/d;/_HOUSES_/d;/_ALIENS_/d;/_HEROES_/d;/_SPRITES_/d;/_MESSAGES_/d;/_FUNCTIONS_/d'
+if sed --version >/dev/null 2>&1; then
+    sed -i "$_patterns" $target
+else
+    sed -i '' "$_patterns" $target
+fi
 chmod +x $target
