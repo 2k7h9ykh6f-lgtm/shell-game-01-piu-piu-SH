@@ -12,13 +12,13 @@ sed '1d' sprites_trees            >> $target
 sed '1d' sprites_penis            >> $target
 sed -n '/_PENIS_/,$p'     main    >> $target
 
-sed -i '/_PENIS_/d;
-        /_TREES_/d;
-        /_CLOUDS_/d;
-        /_HOUSES_/d;
-        /_ALIENS_/d;
-        /_HEROES_/d;
-        /_SPRITES_/d;
-        /_MESSAGES_/d;
-        /_FUNCTIONS_/d' $target
-chmod +x $target
+sed '/_PENIS_/d;
+     /_TREES_/d;
+     /_CLOUDS_/d;
+     /_HOUSES_/d;
+     /_ALIENS_/d;
+     /_HEROES_/d;
+     /_SPRITES_/d;
+     /_MESSAGES_/d;
+     /_FUNCTIONS_/d' "$target" > "$target.tmp" && mv "$target.tmp" "$target"
+chmod +x "$target"

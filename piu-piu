@@ -81,6 +81,50 @@ read year month day dow < <(LANG=C date +'%Y %m %d %a') # get year, month, day a
 #================================================{ Functions }==========================================================
 bye () { cursor on; exit $1; }
 
+#================================================{ High score }=========================================================
+hs_file="${XDG_DATA_HOME:-$HOME/.local/share}/piu-piu/highscores"
+
+highscore_mode () { # human-readable game mode label
+    case $game in
+        single) printf single;;
+             *) printf '%s-%s' "$game" "$type";;
+    esac
+}
+
+highscore_save () { # $1 = win|lose : append one record (skips client, which has no authoritative score)
+    [[ $game == client ]] && return
+    local enemies=$((frags + frags2)) boss=no score
+    [[ $1 == win && $type != duel ]] && boss=yes
+    score=$((enemies * 10)); [[ $boss == yes ]] && ((score += 1000))
+    hs_run_score=$score hs_run_enemies=$enemies hs_run_boss=$boss
+    mkdir -p "${hs_file%/*}" 2>/dev/null || return
+    printf '%s|%s|%s|%s|%s\n' "$score" "$enemies" "$boss" "$(highscore_mode)" "$(date +'%Y-%m-%d %H:%M:%S')" >> "$hs_file"
+}
+
+highscore_load () { # set hs_best_* to the highest-scoring record (empty when no file yet)
+    hs_best_score= hs_best_enemies= hs_best_boss= hs_best_mode= hs_best_time=
+    [[ -f $hs_file ]] || return
+    local s e b m t
+    while IFS='|' read -r s e b m t; do
+        [[ $s =~ ^[0-9]+$ ]] || continue
+        [[ -z $hs_best_score || $s -gt $hs_best_score ]] && \
+            hs_best_score=$s hs_best_enemies=$e hs_best_boss=$b hs_best_mode=$m hs_best_time=$t
+    done < "$hs_file"
+}
+
+highscore_banner () { # draw the best score on the start menu (uses hs_best_* from highscore_load)
+    local msg="HIGH SCORE: none yet"
+    [[ $hs_best_score ]] && msg="HIGH SCORE: $hs_best_score  (${hs_best_enemies} kills, boss ${hs_best_boss}, ${hs_best_mode})"
+    XY 2 1 "$BLD$RED$msg$DEF"
+}
+
+highscore_endscreen () { # $1 = win|lose : show this run + best under the WIN/LOSE art
+    highscore_load
+    local ex=$((endx/2 - 25/2)) ey=$((endy/2 + 5))
+    XY $ex  $ey      "$BLD${YLW}Your score: $RED${hs_run_score:-0}$DEF$BLD (${hs_run_enemies:-0} kills, boss ${hs_run_boss:-no})$DEF"
+    XY $ex $((ey+1)) "$BLD${YLW}Best:       $RED${hs_best_score:-0}$DEF"
+}
+
 cursor () {
     case $1 in
          on) stty  echo; printf "$CON";;
@@ -135,8 +179,8 @@ mess () {
     cursor off
     XY 1 1 ${DEF}; clear
     case $1 in
-        win ) sprite_win ; XY 0 ${endy}; read -t3 -n1000 trash; the_story; return 0;;
-        lose) sprite_lose; XY 0 ${endy}; read -t3 -n1000 trash; bye 1;;
+        win ) highscore_save win ; sprite_win ; highscore_endscreen win ; XY 0 ${endy}; read -t3 -n1000 trash; the_story; return 0;;
+        lose) highscore_save lose; sprite_lose; highscore_endscreen lose; XY 0 ${endy}; read -t3 -n1000 trash; bye 1;;
         tobe) sprite_tobe; XY 0 ${endy}; read -t3 -n1000 trash; bye 1;;
         help) sprite_help;;
     esac
@@ -493,7 +537,9 @@ type=team
 menu () {
      item=1 MX=$[$endx/4+4] MY=$[$endy-6]
     items=('' "start $game" 'multiplayer' 'configure' 'exit')
+    highscore_load
     while true; do
+        highscore_banner
         selector || ${items[$?]// */} || break
         [[ $show_hero ]] && hero_config
         for i in ${!items[@]}; {
