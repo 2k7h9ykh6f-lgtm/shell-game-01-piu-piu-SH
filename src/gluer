@@ -12,7 +12,7 @@ sed '1d' sprites_trees            >> $target
 sed '1d' sprites_penis            >> $target
 sed -n '/_PENIS_/,$p'     main    >> $target
 
-sed -i '/_PENIS_/d;
+sed -i '' '/_PENIS_/d;
         /_TREES_/d;
         /_CLOUDS_/d;
         /_HOUSES_/d;

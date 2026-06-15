@@ -51,7 +51,7 @@ vfail(){
      bhealth=100                                        # boss' health                              (100)
      showfps=true                                       # show FPS counter if set                   (true)
      enumber=0                                          # enemies counter                           (0)
-     bonuses=("ammo" "life" "ammo" "gunup" "ammo")      # bonuses, more ammo, less life ang gun power ups
+     bonuses=("ammo" "life" "ammo" "gunup" "ammo" "dblshot" "pierce") # bonuses, more ammo, less life ang gun power ups
        enmax=100                                        # max number of enemies                     (10)
        crate=0                                          # crate drop                                (0)
        frags=0                                          # hero1 frags counter                       (0)
@@ -66,6 +66,8 @@ vfail(){
          HOU=1111                                       # houses randomizer                         (1111)
           ad='Die alien scum!'                          # ad plane message                          'Die alien scum!'
            G=1                                          # gun                                       (1)(max 5)
+         PWR=0                                          # power-up type (0=none,1=dblshot,2=pierce) (0)
+     PWR_TTL=0                                          # power-up remaining frames                  (0)
 read year month day dow < <(LANG=C date +'%Y %m %d %a') # get year, month, day and day of week at once
 #----{ Multipleyer config }-----------------------------{ description  }---------------------{ def. values }------------
       frags2=0                                          # hero2 frags counter                       (0)
@@ -223,6 +225,10 @@ collision () {
 #             alien:*) collbooom; ((enumber--)) ; return 0;;
               gunup:1) collbooom; [[ $G  -lt $gunmax ]] && ((G++))   ; return 1;;
               gunup:2) collbooom; [[ $G2 -lt $gunmax ]] && ((G2++))  ; return 1;;
+            dblshot:1) collbooom; PWR=1; PWR_TTL=600; return 1;;
+            dblshot:2) collbooom; PWR=1; PWR_TTL=600; return 1;;
+             pierce:1) collbooom; PWR=2; PWR_TTL=450; return 1;;
+             pierce:2) collbooom; PWR=2; PWR_TTL=450; return 1;;
               alien:1) collbooom; ((enumber--)) ; ((frags++)) ; bonus; return 0;;
               alien:2) collbooom; ((enumber--)) ; ((frags2++)); bonus; return 0;;
               hero1:2|penis1:2 )  ((frags2++))  ; ((life--))  ; BOOM $obj_x $obj_y ; return 0;;
@@ -270,6 +276,10 @@ status () { #-{ Print game status }--------------------------------------------
          (team:*       ) enemy=aliens  bullets=Ammo;;
     esac
     screen+="\e[1;2H$SKY${BLK}Killed $enemy: $SKY$RED$frags$SKY ${BLK}Life: $SKY$RED$life$SKY ${BLK}$bullets: $SKY$RED$ammo$SKY "
+    case $PWR in
+        1) screen+="${YLW}[DBL:$PWR_TTL]$SKY ";;
+        2) screen+="${CYN}[PRC:$PWR_TTL]$SKY ";;
+    esac
     case $game in 'server')
         screen+="\e[$endy;2H$LND${BLK}Killed $enemy: $LND$RED$frags2$LND ${BLK}Life: $LND$RED$life2$LND ${BLK}$bullets: $LND$RED$ammo2$LND ";;
     esac
@@ -303,40 +313,76 @@ add_enm () {
 
 add_piu () {
     local PX=$1 PY=$2 PH=$3 PS=$4
-    case $PS:$PH:$type in
-           1:*:*)    PIU+=("piu$PH $[PX+12] $[PY+3] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3");; # -=>
+    case $PWR:$PS:$PH:$type in
+    #--{ Double shot (PWR=1) }---------------------------------------------------------
+           1:1:*:*)    PIU+=("piu$PH $[PX+12] $[PY+3] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+4] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3");;
 
-           2:*:*)    PIU+=("piu$PH $[PX+12] $[PY+4] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"    # -=>
+           1:2:*:*)    PIU+=("piu$PH $[PX+12] $[PY+4] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+5] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+2] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+3] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3");;
+
+           1:3:*:*)    PIU+=("piu$PH $[PX+12] $[PY+2] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+13] $[PY+3] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+4] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+3] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+13] $[PY+4] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+5] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3");;
+
+           1:4:*:*)    PIU+=("piu$PH $[PX+12] $[PY+1] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+13] $[PY+2] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+4] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+13] $[PY+5] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+2] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+13] $[PY+3] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+5] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+13] $[PY+6] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3");;
+
+           1:*:*:*)    PIU+=("piu$PH $[PX+12] $[PY+1] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+13] $[PY+2] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+14] $[PY+3] 1 4 0 0 1 $[endx-(PX+14)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+13] $[PY+4] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+5] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+2] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+13] $[PY+3] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+14] $[PY+4] 1 4 0 0 1 $[endx-(PX+14)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+13] $[PY+5] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"
+                           "piu$PH $[PX+12] $[PY+6] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3");;
+    #--{ Normal shot }----------------------------------------------------------------
+           0:1:*:*)    PIU+=("piu$PH $[PX+12] $[PY+3] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3");; # -=>
+
+           0:2:*:*)    PIU+=("piu$PH $[PX+12] $[PY+4] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"    # -=>
                                                                                                 #
                            "piu$PH $[PX+12] $[PY+2] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3");; # -=>
 
-           3:2:duel) PIU+=("piu$PH $[PX+13] $[PY+2] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"    #  <=-
+           0:3:2:duel) PIU+=("piu$PH $[PX+13] $[PY+2] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"    #  <=-
                            "piu$PH $[PX+12] $[PY+3] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"    # <=-
                            "piu$PH $[PX+13] $[PY+4] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3");; #  <=-
 
-           3:*:*)    PIU+=("piu$PH $[PX+12] $[PY+2] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"    # -=>
+           0:3:*:*)    PIU+=("piu$PH $[PX+12] $[PY+2] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"    # -=>
                            "piu$PH $[PX+13] $[PY+3] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"    #  -=>
                            "piu$PH $[PX+12] $[PY+4] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3");; # -=>
 
-           4:2:duel) PIU+=("piu$PH $[PX+13] $[PY+1] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"    #  <=-
+           0:4:2:duel) PIU+=("piu$PH $[PX+13] $[PY+1] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"    #  <=-
                            "piu$PH $[PX+12] $[PY+2] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"    # <=-
                                                                                                 #
                            "piu$PH $[PX+13] $[PY+4] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"    # <=-
                            "piu$PH $[PX+12] $[PY+5] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3");; #  <=-
 
-           4:*:*)    PIU+=("piu$PH $[PX+12] $[PY+1] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"    # -=>
+           0:4:*:*)    PIU+=("piu$PH $[PX+12] $[PY+1] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"    # -=>
                            "piu$PH $[PX+13] $[PY+2] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"    #  -=>
                                                                                                 #
                            "piu$PH $[PX+12] $[PY+4] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"    #  -=>
                            "piu$PH $[PX+13] $[PY+5] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3");; # -=>
 
-           *:2:duel) PIU+=("piu$PH $[PX+14] $[PY+1] 1 4 0 0 1 $[endx-(PX+14)] $[RANDOM%3] 3"    #   <=-
+           0:*:2:duel) PIU+=("piu$PH $[PX+14] $[PY+1] 1 4 0 0 1 $[endx-(PX+14)] $[RANDOM%3] 3"    #   <=-
                            "piu$PH $[PX+13] $[PY+2] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"    #  <=-
                            "piu$PH $[PX+12] $[PY+3] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"    # <=-
                            "piu$PH $[PX+13] $[PY+4] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"    #  <=-
                            "piu$PH $[PX+14] $[PY+5] 1 4 0 0 1 $[endx-(PX+14)] $[RANDOM%3] 3");; #   <=-
 
-           *:*:*)    PIU+=("piu$PH $[PX+12] $[PY+1] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"    # -=>
+           0:*:*:*)    PIU+=("piu$PH $[PX+12] $[PY+1] 1 4 0 0 1 $[endx-(PX+12)] $[RANDOM%3] 3"    # -=>
                            "piu$PH $[PX+13] $[PY+2] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"    #  -=>
                            "piu$PH $[PX+14] $[PY+3] 1 4 0 0 1 $[endx-(PX+14)] $[RANDOM%3] 3"    #   -=>
                            "piu$PH $[PX+13] $[PY+4] 1 4 0 0 1 $[endx-(PX+13)] $[RANDOM%3] 3"    #  -=>
@@ -774,6 +820,32 @@ sprite_gunup () {
                 cut $SX $[OY+2] $CM1 '‖' $CM3'‾' $CM3'‾' $SKY' ';; #3
     esac
 }
+#------------------------{ Power-ups }----------------------------------------------------------------------------------
+sprite_dblshot () {
+    mov - && ENM[i]="dblshot $OX $OY 3 4 $SC $SM $CS $CL $AS 3 $i" || { unset ENM[i]; return; }
+    CM1=$SKY$YLW CM2=$SKY$BLD$YLW
+    #01234
+    #1»»
+    #2»»
+    #3»»
+    ####################  1      2      3      4   #0
+    cut $SX  $OY    $CM1 '»'  $CM2'»'  ' '    ' ' #1
+    cut $SX $[OY+1] $CM1 '»'  $CM2'»'  ' '    ' ' #2
+    cut $SX $[OY+2] $CM1 '»'  $CM2'»'  ' '    ' ' #3
+}
+
+sprite_pierce () {
+    mov - && ENM[i]="pierce $OX $OY 3 4 $SC $SM $CS $CL $AS 3 $i" || { unset ENM[i]; return; }
+    CM1=$SKY$CYN CM2=$SKY$BLD$CYN
+    #01234
+    #1»-
+    #2»-
+    #3»-
+    ####################  1      2      3      4   #0
+    cut $SX  $OY    $CM1 '»'  $CM2'-'  ' '    ' ' #1
+    cut $SX $[OY+1] $CM1 '»'  $CM2'-'  ' '    ' ' #2
+    cut $SX $[OY+2] $CM1 '»'  $CM2'-'  ' '    ' ' #3
+}
 #------------------------{ Ad plane }-----------------------------------------------------------------------------------
 flame1=("$red- ⎕"       "$ylw~ ⎕"       "$red- $RED~ ⎕" "$ylw- ⎕ ⎕")
 flame2=("$ylw- ⎕"       "$red- $RED~ ⎕" "$red~ ⎕ ⎕"       "$YLW~ ⎕")
@@ -1092,7 +1164,7 @@ sprite_hero1 () {
      'duel')
          re="crate ($[OX+7]|$[OX+8]|$[OX+9]|$[OX+10]|$[OX+11]) ($[OY+2]|$[OY+3]|$[OY+4]|$[OY+5]|$[OY+6]).*";;
      'team')
-         re="(life|ammo|gunup) ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]|$[OY+3]|$[OY+4]).*|"
+         re="(life|ammo|gunup|dblshot|pierce) ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]|$[OY+3]|$[OY+4]).*|"
         re+="alien ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]).*|"
         re+="bfire ($[OX+12]|$[OX+13]) ($[OY+2]|$[OY+3]).*|"
         re+="boss ($[OX+12]|$[OX+13]) $[OY-1].*";;
@@ -1155,7 +1227,7 @@ sprite_hero2 () {
 
      'team') control_hero2 $H2X $H2Y
               X1="_Y_$[OX+6]H"; [[ $G2 -eq 5 ]] && GN=$SKY$BLD$BLK${gun[$G2]}
-              re="(life|ammo|gunup) ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]|$[OY+3]|$[OY+4]).*|"
+              re="(life|ammo|gunup|dblshot|pierce) ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]|$[OY+3]|$[OY+4]).*|"
              re+="alien ($[OX+12]|$[OX+13]) ($[OY+1]|$[OY+2]).*|"
              re+="bfire ($[OX+12]|$[OX+13]) ($[OY+2]|$[OY+3]).*|"
              re+="boss ($[OX+12]|$[OX+13]) $[OY-1].*"
@@ -1207,7 +1279,7 @@ sprite_piu1 () {
             ################  1      2    3        4    #0
             cut $OX $OY $SKY ' ' ${shoot[AS]} $CM1'>';; #1
     esac
-    collision 1 "$re" $OX $[OY-1] && unset PIU[i]
+    collision 1 "$re" $OX $[OY-1] && [[ $PWR -ne 2 ]] && unset PIU[i]
 }
 
 sprite_piu2 () {
@@ -1235,7 +1307,7 @@ sprite_piu2 () {
             ################  1      2    3        4    #0
             cut $OX $OY $SKY ' ' ${shoot[AS]} $CM1'>';; #1
     esac
-    collision 2 "$re" $OX $[OY-1] && unset PIU[i]
+    collision 2 "$re" $OX $[OY-1] && [[ $PWR -ne 2 ]] && unset PIU[i]
 }
 bshoot=('█ ▓ ▒ ░'
         '▓ ▒ ░ ▒'
@@ -1950,6 +2022,7 @@ game () {
         HER=("${HER[@]}"); for i in ${!HER[@]}; { OI=(${HER[i]}); print_sprite; } # heroes
         ENM=("${ENM[@]}"); for i in ${!ENM[@]}; { OI=(${ENM[i]}); print_sprite; } # enemies
         BP3=("${BP3[@]}"); for i in ${!BP3[@]}; { OI=(${BP3[i]}); print_sprite; } # big(closer) background objects
+        [[ $PWR_TTL -gt 0 ]] && ((PWR_TTL--)) || PWR=0                             # power-up timer
         #-{ BOSS }-------------------------------------------------------------
         if [[ $[frags+frags2] -ge $tillboss && $type != duel ]]; then # add boss object
             [[ $bossborn ]] || { ENM+=("boss $endx $halfy 6 14 0 0 1 0 $[RANDOM%3] 3 20 10"); bossborn=true; }
