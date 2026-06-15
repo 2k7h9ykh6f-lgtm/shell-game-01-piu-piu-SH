@@ -91,7 +91,7 @@ read year month day dow < <(LANG=C date +'%Y %m %d %a') # get year, month, day a
 game () {
     while true; do
         #-{ Empty screen, print game status and FPS }--------------------------
-        screen=; status; [[ $showfps ]] && fps_counter
+        screen=; status; ally_status; [[ $showfps ]] && fps_counter
         #-{ Add background }---------------------------------------------------
         [[ $background ]] && add_backgound birds msngr clouds houses trees moving_land
         #-{ Move bitplans }----------------------------------------------------

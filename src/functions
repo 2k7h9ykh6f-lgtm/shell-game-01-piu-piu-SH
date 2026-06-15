@@ -196,6 +196,23 @@ status () { #-{ Print game status }--------------------------------------------
     esac
 }
 
+ally_status () { #-{ Teammate low-health / destroyed alert (team multiplayer only) }-
+    [[ $game == server && $type == team ]] || return
+    local col txt plain
+    # Alert about HERO 2 -> top (sky) HUD band, right-aligned on row 1
+    txt=
+    if   (( life2 <= 0 )); then txt="$SKY$BLD$RED✖ HERO 2 DOWN!$DEF"      plain="X HERO 2 DOWN!"
+    elif (( life2 == 1 )); then txt="$SKY$BLD$YLW⚠ HERO 2 LOW HEALTH$DEF" plain="X HERO 2 LOW HEALTH"
+    fi
+    [[ $txt ]] && { col=$(( endx - ${#plain} - 1 )); (( col < 1 )) && col=1; screen+="\e[1;${col}H$txt"; }
+    # Alert about HERO 1 -> bottom (land) HUD band, ends before FPS counter (endx-9)
+    txt=
+    if   (( life  <= 0 )); then txt="$LND$BLD$RED✖ HERO 1 DOWN!$DEF"      plain="X HERO 1 DOWN!"
+    elif (( life  == 1 )); then txt="$LND$BLD$YLW⚠ HERO 1 LOW HEALTH$DEF" plain="X HERO 1 LOW HEALTH"
+    fi
+    [[ $txt ]] && { col=$(( endx - 10 - ${#plain} )); (( col < 1 )) && col=1; screen+="\e[${endy};${col}H$txt"; }
+}
+
 boss_health () {
     bar=; hp=$((bosshbar * bhealth / 100)); hm=$((endx - 10))
     for (( i=0  ; i<hp; i++ )); do bar="█$bar"; done
